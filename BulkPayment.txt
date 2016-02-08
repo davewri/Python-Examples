@@ -1,0 +1,80 @@
+First find the bulk pay reason code for the deposit you are making:
+SELECT * FROM ftdw.dbo.bulk_pay_type bpt WHERE bulk_pay_reason = 'Player got $50 For Depositing $50' 
+
+Map the Casino Chip to the bulk pay reason code:
+EXEC ftdw.promo.add_mapping_bulk_pay_note_payout_ticket @note_key = 1446, @ticket_type_key =726
+
+Run the following change values as needed:
+use ftdw
+
+declare @treatment varchar(25)
+declare @treatment_plus1 varchar(25)
+select @treatment = max(treatment_code) from ftdw.promo.player_treatment pt  (nolock) where player_treatment_key not in (11,13)
+set @treatment_plus1 = '0000000' +  cast (@treatment + 1 as varchar(2))
+--select @treatment
+--select @treatment_plus1
+
+
+insert into 
+ftdw.promo.easy_bonus_unica_interface_vw
+(player_key
+,treatment_code
+,offer_name
+,treatment_category
+,deposit_required_flag
+,treatment_start_datetime
+,deposit_start_datetime
+,optin_required_flag
+,deposit_expiry_datetime
+,treatment_expiry_datetime
+,payout_type
+,pro_rata_flag
+,my_promo_channel_required_flag
+,total_points_needed
+,deposit_currency_type_key
+,deposit_amount_needed
+,milestone_1_code
+,milestone_1_points_needed
+,milestone_1_payout_in_currency_flag
+--,milestone_1_payout_currency_type_key
+--,milestone_1_payout_currency_amount      
+,milestone_1_payout_ticket_type_key
+,milestone_1_payout_ticket_amount
+,deposit_external_payment_method_required_flag
+)
+values (
+14174459
+,'00000006'
+--,@treatment_plus1
+,'Player got $50 For Depositing $50' -- note key 
+,'Deposit test3'
+,'N' -- deposit required
+,getdate() -- treatment start
+,getdate() -- deposit start
+,'N' -- optin required
+,getdate()+3 -- deposit expiry
+,getdate()+1 -- treatment expiry
+,'payout_till_milestone_complete' -- payout type
+,'N' -- pro rata flag
+,'N' -- Promo flag required
+,0 -- total points needed
+,0 -- deposit currency type key
+,50 -- deposit amount needed
+,'milestone_1' -- milestone code
+,0 -- points needed
+,'N' -- payout in currency
+--,0 --currency type
+--,0 -- currency amount
+,730 --ticket type
+,1 --ticket amount
+,'N' -- deposit external payment flag required
+)
+
+SELECT * FROM ftdw.promo.easy_bonus_unica_interface_vw
+
+
+Check the player treatment is ok - state_key should be 5
+SELECT * FROM promo.player_treatment
+
+Check the payment has been processed - processed should = 1
+SELECT * FROM promo.bulk_pay_payments bpp ORDER BY 1 DESC
